@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-1">
           <h2 className="text-xl font-bold text-[#1c1b18]">Administrator Access Required</h2>
           <p className="text-xs text-[#736e65]">
-            This portal is restricted to authorized UCC Grooming Service administrators.
+            This portal is restricted to authorized UCC Grooming Services administrators.
           </p>
         </div>
         <div className="pt-2 flex flex-col gap-2.5">

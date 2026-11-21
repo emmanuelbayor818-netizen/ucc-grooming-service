@@ -5,16 +5,16 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "UCC Grooming Service | Campus Barbers, Salons & Live Queue",
+  title: "UCC Grooming Services | Campus Barbers, Salons & Live Queue",
   description:
     "Premier grooming, haircut, and braiding appointment booking with live queue monitoring for University of Cape Coast (UCC) students and campus vendors.",
   keywords: [
+    "UCC Grooming Services",
     "UCC Grooming",
     "Cape Coast Barbers",
     "UCC Salons",
-    "Casford Barbershop",
-    "Science UCC Salon",
-    "Amamoma Grooming",
+    "Ayensu Barbershop",
+    "Kwaprow Salon",
     "UCC Queue Monitor",
   ],
 };

@@ -39,7 +39,7 @@ function LoginForm() {
           <Scissors className="w-6 h-6" />
         </div>
         <h1 className="text-2xl font-extrabold text-[#1c1b18] tracking-tight">
-          Sign In to UCC Grooming
+          Sign In to UCC Grooming Services
         </h1>
         <p className="text-xs text-[#736e65]">
           Access your bookings, queue monitoring, and grooming appointments.

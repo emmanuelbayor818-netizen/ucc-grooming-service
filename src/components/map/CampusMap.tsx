@@ -215,7 +215,7 @@ export function CampusMap({
       {/* Map overlay controls */}
       <div className="absolute top-3 right-3 z-10 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#ede8e1] shadow-sm text-[11px] font-semibold text-[#1c1b18] flex items-center space-x-1.5">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>UCC Grooming GPS Active</span>
+        <span>UCC Grooming Services GPS Active</span>
       </div>
     </div>
   );

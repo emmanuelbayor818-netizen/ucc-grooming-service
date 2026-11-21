@@ -29,7 +29,7 @@ export function Navbar() {
             </div>
             <div>
               <span className="font-bold text-lg tracking-tight text-[#1c1b18]">
-                UCC GROOMING
+                UCC GROOMING SERVICES
               </span>
               <span className="block text-[10px] tracking-wider uppercase font-semibold text-[#8a8479]">
                 Campus & Community Hub
@@ -149,7 +149,7 @@ export function Navbar() {
                   href="/auth/register"
                   className="text-sm font-medium bg-[#1c1b18] text-[#fdfbf7] hover:bg-[#2e2c28] px-4 py-2.5 rounded-xl shadow-sm transition-all"
                 >
-                  Join UCC Grooming
+                  Join UCC Grooming Services
                 </Link>
               </div>
             )}
@@ -241,7 +241,7 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="block text-center py-2.5 rounded-xl bg-[#1c1b18] text-white font-medium"
               >
-                Join UCC Grooming
+                Join UCC Grooming Services
               </Link>
             </div>
           )}

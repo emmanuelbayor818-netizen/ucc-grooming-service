@@ -17,7 +17,7 @@ export function Footer() {
                 <Scissors className="w-5 h-5" />
               </div>
               <span className="font-bold text-white text-lg tracking-tight">
-                UCC GROOMING
+                UCC GROOMING SERVICES
               </span>
             </div>
             <p className="text-sm leading-relaxed text-[#8a8479]">
@@ -122,7 +122,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-[#292825] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#736e65]">
-          <p>© 2026 UCC Grooming Service. All rights reserved.</p>
+          <p>© 2026 UCC Grooming Services. All rights reserved.</p>
           <p className="flex items-center space-x-1 mt-2 sm:mt-0">
             <span>Built with care for the UCC Student Body</span>
             <Heart className="w-3 h-3 text-rose-500 fill-rose-500 inline" />
