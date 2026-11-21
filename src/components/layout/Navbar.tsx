@@ -28,7 +28,10 @@ export function Navbar() {
               <Scissors className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-bold text-lg tracking-tight text-[#1c1b18]">
+              <span
+                className="font-bold text-lg tracking-tight text-[#1c1b18]"
+                suppressHydrationWarning
+              >
                 UCC GROOMING SERVICES
               </span>
               <span className="block text-[10px] tracking-wider uppercase font-semibold text-[#8a8479]">
