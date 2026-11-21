@@ -85,13 +85,15 @@ export const VENDOR_CATEGORIES: { id: VendorCategory; label: string; icon: strin
 ];
 
 export const UCC_CAMPUS_AREAS: CampusArea[] = [
+  'Ayensu',
+  'Kwaprow',
+  'School Bus Road',
+  'Esuekyir',
   'Science',
   'Old Site',
   'New Site',
   'Amamoma',
-  'Kwaprow',
   'Apewosika',
-  'Ayensu',
   'Valco / Casford',
   'Oguaa / ATL',
   'Other / Surrounding UCC'
