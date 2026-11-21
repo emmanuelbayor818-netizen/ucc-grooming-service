@@ -10,8 +10,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from "firebase/auth";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase/client";
+import { auth } from "@/lib/firebase/client";
 import { UserProfile, UserRole } from "@/types";
 
 interface AuthContextType {
@@ -50,8 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    let unsubscribeProfile: (() => void) | null = null;
-
     // Safety timeout: Never leave loading true for more than 1.5s
     const safetyTimer = setTimeout(() => {
       setLoading(false);
@@ -62,24 +59,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser);
 
       if (currentUser) {
-        // Real-time listener for user profile from Firestore
-        const userRef = doc(db, "users", currentUser.uid);
-        unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
-          if (snapshot.exists()) {
-            setProfile(snapshot.data() as UserProfile);
-          } else {
-            // Profile may still be creating via API handler
-            setProfile(null);
+        try {
+          const res = await fetch(`/api/auth/profile?userId=${currentUser.uid}&email=${encodeURIComponent(currentUser.email || "")}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.profile) {
+              setProfile(data.profile as UserProfile);
+            }
           }
+        } catch (err) {
+          console.warn("Could not load user profile via API:", err);
+        } finally {
           setLoading(false);
-        }, (error) => {
-          console.error("Profile listener error:", error);
-          setLoading(false);
-        });
-      } else {
-        if (unsubscribeProfile) {
-          unsubscribeProfile();
         }
+      } else {
         setProfile(null);
         setLoading(false);
       }
@@ -88,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       clearTimeout(safetyTimer);
       unsubscribeAuth();
-      if (unsubscribeProfile) unsubscribeProfile();
     };
   }, []);
 
@@ -158,9 +150,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      const snap = await getDoc(doc(db, "users", user.uid));
-      if (snap.exists()) {
-        setProfile(snap.data() as UserProfile);
+      try {
+        const res = await fetch(`/api/auth/profile?userId=${user.uid}&email=${encodeURIComponent(user.email || "")}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile) {
+            setProfile(data.profile as UserProfile);
+          }
+        }
+      } catch (e) {
+        console.warn("Profile refresh error:", e);
       }
     }
   };
