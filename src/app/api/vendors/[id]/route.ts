@@ -36,14 +36,20 @@ export async function GET(
     const reviewsSnap = await adminDb
       .collection("reviews")
       .where("vendorId", "==", vendorId)
-      .orderBy("createdAt", "desc")
-      .limit(20)
+      .limit(50)
       .get();
 
-    const reviews = reviewsSnap.docs.map((doc: any) => ({
-      reviewId: doc.id,
-      ...doc.data(),
-    }));
+    const reviews = reviewsSnap.docs
+      .map((doc: any) => ({
+        reviewId: doc.id,
+        ...doc.data(),
+      }))
+      .sort((a: any, b: any) => {
+        const tA = a.createdAt?._seconds || a.createdAt?.seconds || 0;
+        const tB = b.createdAt?._seconds || b.createdAt?.seconds || 0;
+        return tB - tA;
+      })
+      .slice(0, 20);
 
     return NextResponse.json({
       success: true,

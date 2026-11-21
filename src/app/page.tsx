@@ -15,10 +15,14 @@ import {
   Phone,
   ArrowRight,
   Navigation,
+  Map as MapIcon,
+  Grid,
+  ExternalLink,
 } from "lucide-react";
 import { Vendor, VendorCategory, CampusArea } from "@/types";
 import { VENDOR_CATEGORIES, UCC_CAMPUS_AREAS, calculateDistanceKm, UCC_COORDINATES } from "@/lib/constants/ucc";
 import { formatGHS } from "@/lib/utils/time";
+import { CampusMap } from "@/components/map/CampusMap";
 
 export default function HomePage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -28,32 +32,21 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locatingUser, setLocatingUser] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "map">("grid");
+  const [sortByDistance, setSortByDistance] = useState(false);
 
-  // Fetch vendors from Firestore or seeded API
+  // Fetch vendors from Firestore API
   useEffect(() => {
     async function loadVendors() {
       try {
         setLoading(true);
-        // First try to fetch from client Firestore or API
-        const res = await fetch("/api/admin/seed", { method: "GET" }).catch(() => null);
-        // Or fetch through our public directory route
-        const directoryRes = await fetch("/api/vendors").catch(() => null);
-        if (directoryRes && directoryRes.ok) {
-          const data = await directoryRes.json();
+        const res = await fetch("/api/vendors");
+        if (res.ok) {
+          const data = await res.json();
           setVendors(data.vendors || []);
-        } else {
-          // If no custom endpoint yet, fetch via internal endpoint or trigger automatic seed if empty
-          const seedRes = await fetch("/api/admin/seed", { method: "POST" });
-          if (seedRes.ok) {
-            const listRes = await fetch("/api/vendors");
-            if (listRes.ok) {
-              const listData = await listRes.json();
-              setVendors(listData.vendors || []);
-            }
-          }
         }
       } catch (err) {
-        console.warn("Using sample campus vendors fallback:", err);
+        console.warn("Error fetching campus vendors:", err);
       } finally {
         setLoading(false);
       }
@@ -73,19 +66,22 @@ export default function HomePage() {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         });
+        setSortByDistance(true);
         setLocatingUser(false);
       },
       (err) => {
-        console.warn("Location permission denied or unavailable:", err);
+        console.warn("Location permission denied or unavailable, using UCC Ayensu center:", err);
         // Default to UCC coordinates for demo
         setUserLocation(UCC_COORDINATES);
+        setSortByDistance(true);
         setLocatingUser(false);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
-  // Filtered vendors
-  const filteredVendors = vendors.filter((v) => {
+  // Filter and sort vendors
+  let filteredVendors = vendors.filter((v) => {
     const matchesSearch =
       searchQuery === "" ||
       v.shopName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -100,6 +96,14 @@ export default function HomePage() {
 
     return matchesSearch && matchesArea && matchesCategory;
   });
+
+  if (sortByDistance && userLocation) {
+    filteredVendors = [...filteredVendors].sort((a, b) => {
+      const distA = calculateDistanceKm(userLocation.lat, userLocation.lng, a.latitude, a.longitude);
+      const distB = calculateDistanceKm(userLocation.lat, userLocation.lng, b.latitude, b.longitude);
+      return distA - distB;
+    });
+  }
 
   return (
     <div className="space-y-16 pb-16">
@@ -125,7 +129,7 @@ export default function HomePage() {
 
             {/* Subheading */}
             <p className="text-base sm:text-lg text-[#615c54] leading-relaxed max-w-2xl mx-auto">
-              Book verified campus barbershops, braiders, stylists, and nail salons across Science, Casford, ATL, and Amamoma with real-time queue monitors.
+              Book verified campus barbershops, braiders, stylists, and nail salons across Ayensu, Kwaprow, School Bus Road, and Esuekyir with live GPS distance and real-time wait monitors.
             </p>
 
             {/* Search & Filter Bar */}
@@ -135,7 +139,7 @@ export default function HomePage() {
                 <Search className="w-5 h-5 text-[#8a8479] mr-2 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Search barbers, hair stylists, braids..."
+                  placeholder="Search barbers, braids, permcut, wig styling..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent py-2.5 text-sm text-[#1c1b18] focus:outline-none placeholder-[#8a8479]"
@@ -159,12 +163,16 @@ export default function HomePage() {
                 <button
                   onClick={handleGetLocation}
                   disabled={locatingUser}
-                  className="px-3.5 py-2.5 rounded-xl border border-[#ede8e1] bg-[#fdfbf7] hover:bg-[#ede8df] text-[#4a4742] transition-colors flex items-center space-x-1.5 text-xs font-semibold shrink-0"
-                  title="Find shops near your current hostel"
+                  className={`px-3.5 py-2.5 rounded-xl border transition-colors flex items-center space-x-1.5 text-xs font-semibold shrink-0 ${
+                    userLocation
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                      : "bg-[#fdfbf7] border-[#ede8e1] text-[#4a4742] hover:bg-[#ede8df]"
+                  }`}
+                  title="Find shops closest to your hostel via GPS"
                 >
-                  <Navigation className="w-3.5 h-3.5 text-[#c59b27]" />
+                  <Navigation className={`w-3.5 h-3.5 ${userLocation ? "text-emerald-600 fill-emerald-600" : "text-[#c59b27]"}`} />
                   <span className="hidden sm:inline">
-                    {userLocation ? "Located" : locatingUser ? "Locating..." : "Near Me"}
+                    {userLocation ? "GPS Active" : locatingUser ? "Locating..." : "Locate Me"}
                   </span>
                 </button>
               </div>
@@ -175,7 +183,7 @@ export default function HomePage() {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs font-medium text-[#736e65]">
               <div className="flex items-center space-x-1.5">
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
-                <span>Verified Campus Stylists</span>
+                <span>7 Verified UCC Studios</span>
               </div>
               <div className="flex items-center space-x-1.5">
                 <Clock className="w-4 h-4 text-[#c59b27]" />
@@ -203,10 +211,10 @@ export default function HomePage() {
               <span>Live Campus Wait-Time Radar</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1c1b18] mt-1 tracking-tight">
-              Current Barber & Salon Queue Status
+              Real-Time Barber & Salon Queue Status
             </h2>
             <p className="text-sm text-[#736e65] mt-1">
-              Check who is busy or open right now before heading out from your hall.
+              Check who is busy or open right now before heading out from your hostel or hall.
             </p>
           </div>
         </div>
@@ -215,12 +223,12 @@ export default function HomePage() {
           {vendors.slice(0, 4).map((v) => {
             const queueCount = v.currentQueueCount || 0;
             const estWait = queueCount * 25; // 25 mins average per cut/style
-            const isHeavy = queueCount >= 4;
+            const isHeavy = queueCount >= 3;
 
             return (
               <div
                 key={v.vendorId}
-                className="bg-white rounded-2xl border border-[#ede8e1] p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between"
+                className="bg-white rounded-2xl border border-[#ede8e1] p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -234,7 +242,7 @@ export default function HomePage() {
                           : "bg-emerald-100 text-emerald-800"
                       }`}
                     >
-                      <span>{isHeavy ? "Busy" : "Open & Fast"}</span>
+                      <span>{isHeavy ? "Busy Queue" : "Open & Fast"}</span>
                     </span>
                   </div>
 
@@ -318,23 +326,77 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. VERIFIED VENDORS DIRECTORY */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
+      {/* 4. VERIFIED VENDORS DIRECTORY & INTERACTIVE GPS MAP */}
+      <section id="directory" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold text-[#1c1b18] tracking-tight">
               Verified Campus Salons & Barbershops
             </h2>
             <p className="text-sm text-[#736e65]">
-              Showing {filteredVendors.length} spots matching your search and filter criteria.
+              Showing {filteredVendors.length} spots in UCC campus and surrounding student corridors.
             </p>
+          </div>
+
+          {/* View Mode Toggle: Grid vs Map */}
+          <div className="flex items-center space-x-2 self-start sm:self-auto">
+            {userLocation && (
+              <button
+                onClick={() => setSortByDistance(!sortByDistance)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition-colors ${
+                  sortByDistance
+                    ? "bg-[#1c1b18] text-white border-[#1c1b18]"
+                    : "bg-white text-[#4a4742] border-[#ede8e1] hover:bg-[#f4efe8]"
+                }`}
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>Sort by Distance</span>
+              </button>
+            )}
+
+            <div className="p-1 bg-[#f4efe8] rounded-xl flex items-center space-x-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  viewMode === "grid"
+                    ? "bg-white text-[#1c1b18] shadow-xs"
+                    : "text-[#736e65] hover:text-[#1c1b18]"
+                }`}
+              >
+                <Grid className="w-3.5 h-3.5" />
+                <span>Cards</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode("map")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                  viewMode === "map"
+                    ? "bg-white text-[#1c1b18] shadow-xs"
+                    : "text-[#736e65] hover:text-[#1c1b18]"
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>GPS Radar Map</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {loading ? (
+        {/* View Mode: Map View */}
+        {viewMode === "map" ? (
+          <div className="space-y-4">
+            <CampusMap
+              vendors={filteredVendors}
+              userLocation={userLocation}
+            />
+            <p className="text-xs text-[#8a8479] text-center">
+              💡 Tip: Click on any pin on the map to view student queue count, distance from your hostel, and instant directions.
+            </p>
+          </div>
+        ) : loading ? (
           <div className="py-20 text-center text-[#8a8479] space-y-3">
             <div className="w-8 h-8 border-2 border-[#c59b27] border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="text-sm font-medium">Loading verified campus studios...</p>
+            <p className="text-sm font-medium">Loading verified campus studios from Cloud Firestore...</p>
           </div>
         ) : filteredVendors.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[#ede8e1] p-12 text-center space-y-4">
@@ -357,48 +419,47 @@ export default function HomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVendors.map((vendor) => {
-              // Distance calculation if user enabled location
-              let distanceText = "";
+              let distanceKm: number | null = null;
               if (userLocation && vendor.latitude && vendor.longitude) {
-                const km = calculateDistanceKm(
+                distanceKm = calculateDistanceKm(
                   userLocation.lat,
                   userLocation.lng,
                   vendor.latitude,
                   vendor.longitude
                 );
-                distanceText = `${km} km from you`;
               }
 
               return (
                 <div
                   key={vendor.vendorId}
-                  className="bg-white rounded-2xl border border-[#ede8e1] overflow-hidden shadow-sm hover:shadow-lg transition-all flex flex-col justify-between group"
+                  className="bg-white rounded-2xl border border-[#ede8e1] overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col justify-between group"
                 >
                   {/* Image & Badges */}
-                  <div className="relative h-48 w-full bg-[#f4efe8] overflow-hidden">
+                  <div className="relative h-52 w-full bg-[#f4efe8] overflow-hidden">
                     <img
                       src={
                         vendor.profileImage ||
-                        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80"
+                        "/images/vendors/bbf-storefront.jpg"
                       }
                       alt={vendor.shopName}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                      <span className="px-2.5 py-1 rounded-md bg-[#1c1b18]/80 backdrop-blur-md text-white text-[11px] font-semibold">
+                      <span className="px-2.5 py-1 rounded-md bg-[#1c1b18]/85 backdrop-blur-md text-white text-[11px] font-semibold">
                         {vendor.area}
                       </span>
                       {vendor.verificationStatus === "verified" && (
-                        <span className="px-2.5 py-1 rounded-md bg-emerald-700/85 backdrop-blur-md text-white text-[11px] font-semibold flex items-center space-x-1">
+                        <span className="px-2.5 py-1 rounded-md bg-emerald-700/90 backdrop-blur-md text-white text-[11px] font-semibold flex items-center space-x-1">
                           <ShieldCheck className="w-3 h-3" />
-                          <span>Verified</span>
+                          <span>Verified UCC Vendor</span>
                         </span>
                       )}
                     </div>
 
-                    {distanceText && (
-                      <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-md text-[#1c1b18] text-[11px] font-bold shadow-xs">
-                        {distanceText}
+                    {distanceKm !== null && (
+                      <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-white/95 backdrop-blur-md text-[#1c1b18] text-[11px] font-bold shadow-xs flex items-center space-x-1">
+                        <Navigation className="w-3 h-3 text-[#c59b27]" />
+                        <span>{distanceKm} km away</span>
                       </div>
                     )}
                   </div>
@@ -421,17 +482,34 @@ export default function HomePage() {
                         {vendor.description}
                       </p>
 
-                      <div className="flex items-center space-x-1 text-xs text-[#8a8479]">
-                        <MapPin className="w-3.5 h-3.5 text-[#c59b27] shrink-0" />
-                        <span className="truncate">{vendor.businessAddress}</span>
+                      <div className="flex items-center justify-between text-xs text-[#8a8479] pt-1">
+                        <div className="flex items-center space-x-1 truncate max-w-[70%]">
+                          <MapPin className="w-3.5 h-3.5 text-[#c59b27] shrink-0" />
+                          <span className="truncate">{vendor.businessAddress}</span>
+                        </div>
+
+                        {vendor.latitude && vendor.longitude && (
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${vendor.latitude},${vendor.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-bold text-[#c59b27] hover:underline flex items-center space-x-1 shrink-0"
+                            title="Get directions in Google Maps"
+                          >
+                            <span>Directions</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
                       </div>
                     </div>
 
                     {/* Footer Row */}
                     <div className="pt-3 border-t border-[#ede8e1] flex items-center justify-between">
                       <div className="text-xs">
-                        <span className="text-[#8a8479]">Services starting at </span>
-                        <span className="font-bold text-[#1c1b18]">GH₵ 35.00</span>
+                        <span className="text-[#8a8479]">Starting from </span>
+                        <span className="font-bold text-[#1c1b18]">
+                          {vendor.categories?.includes("barbering") ? "GH₵ 10.00" : "GH₵ 20.00"}
+                        </span>
                       </div>
 
                       <Link
@@ -473,7 +551,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-bold text-base text-white">Find Your Campus Spot</h3>
               <p className="text-xs text-[#a8a39a] leading-relaxed">
-                Filter by hall or hostel (Science, Casford, Amamoma, ATL, etc.) and check live customer wait times.
+                Filter by hall or hostel (Ayensu, Kwaprow, School Bus Road, Esuekyir) and check live customer wait times.
               </p>
             </div>
 
@@ -483,7 +561,7 @@ export default function HomePage() {
               </div>
               <h3 className="font-bold text-base text-white">Lock In Your Exact Slot</h3>
               <p className="text-xs text-[#a8a39a] leading-relaxed">
-                Pick a guaranteed 30 or 60 minute appointment slot. Concurrency protection ensures no double-booking.
+                Pick a guaranteed 20, 30, or 60 minute appointment slot. Concurrency protection ensures no double-booking.
               </p>
             </div>
 

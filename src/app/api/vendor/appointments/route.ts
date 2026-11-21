@@ -13,14 +13,19 @@ export async function GET(request: Request) {
     const snap = await adminDb
       .collection("appointments")
       .where("vendorId", "==", vendorId)
-      .orderBy("appointmentDate", "desc")
-      .limit(50)
       .get();
 
-    const appointments = snap.docs.map((doc: any) => ({
-      appointmentId: doc.id,
-      ...doc.data(),
-    }));
+    const appointments = snap.docs
+      .map((doc: any) => ({
+        appointmentId: doc.id,
+        ...doc.data(),
+      }))
+      .sort((a: any, b: any) => {
+        const dateCompare = (b.appointmentDate || "").localeCompare(a.appointmentDate || "");
+        if (dateCompare !== 0) return dateCompare;
+        return (b.startTime || "").localeCompare(a.startTime || "");
+      })
+      .slice(0, 50);
 
     return NextResponse.json({ success: true, appointments });
   } catch (error: any) {

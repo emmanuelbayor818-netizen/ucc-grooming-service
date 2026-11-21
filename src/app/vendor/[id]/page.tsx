@@ -19,9 +19,15 @@ import {
   AlertCircle,
   X,
   ArrowLeft,
+  ExternalLink,
+  Search,
+  FileText,
+  Image as ImageIcon,
+  Navigation,
 } from "lucide-react";
 import { Vendor, ServiceItem, Review } from "@/types";
 import { formatGHS } from "@/lib/utils/time";
+import { calculateDistanceKm, UCC_COORDINATES } from "@/lib/constants/ucc";
 
 export default function VendorDetailPage() {
   const params = useParams();
@@ -33,6 +39,16 @@ export default function VendorDetailPage() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filter & Search inside Vendor Catalog
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedServiceCategory, setSelectedServiceCategory] = useState("all");
+
+  // Price List Lightbox Modal
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Student GPS Location
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Booking Modal State
   const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
@@ -60,6 +76,24 @@ export default function VendorDetailPage() {
     }
   }, [profile]);
 
+  // Request browser geolocation once
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        () => {
+          // Fallback to UCC center
+          setUserLocation(UCC_COORDINATES);
+        }
+      );
+    }
+  }, []);
+
   // Load Vendor, Services, and Reviews
   useEffect(() => {
     if (!vendorId) return;
@@ -67,7 +101,6 @@ export default function VendorDetailPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        // Fetch vendor info
         const vRes = await fetch(`/api/vendors/${vendorId}`);
         if (vRes.ok) {
           const vData = await vRes.json();
@@ -119,7 +152,7 @@ export default function VendorDetailPage() {
       return;
     }
     if (!selectedSlot) {
-      setBookingError("Please pick a time slot for your appointment.");
+      setBookingError("Please pick an available time slot for your appointment.");
       return;
     }
 
@@ -127,7 +160,6 @@ export default function VendorDetailPage() {
       setBookingLoading(true);
       setBookingError("");
 
-      // 1. Concurrency-protected appointment creation via transactional server endpoint
       const res = await fetch("/api/appointments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,7 +184,7 @@ export default function VendorDetailPage() {
 
       setBookingSuccess(data.appointment);
 
-      // If user selected Paystack online payment, trigger payment initialization
+      // If online payment is chosen, initialize Paystack
       if (paymentMethod === "paystack_momo") {
         const payRes = await fetch("/api/payments/initialize", {
           method: "POST",
@@ -208,6 +240,34 @@ export default function VendorDetailPage() {
   const queueCount = vendor.currentQueueCount || 0;
   const estWaitMins = queueCount * 25;
 
+  // Filter services by search and category
+  const filteredServices = services.filter((srv) => {
+    const matchesSearch =
+      serviceSearch === "" ||
+      srv.serviceName.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+      srv.description.toLowerCase().includes(serviceSearch.toLowerCase());
+
+    const matchesCat =
+      selectedServiceCategory === "all" || srv.category === selectedServiceCategory;
+
+    return matchesSearch && matchesCat;
+  });
+
+  // Calculate distance from student's GPS location
+  let distanceText = "";
+  if (userLocation && vendor.latitude && vendor.longitude) {
+    const km = calculateDistanceKm(
+      userLocation.lat,
+      userLocation.lng,
+      vendor.latitude,
+      vendor.longitude
+    );
+    distanceText = `${km} km from you`;
+  }
+
+  // Find official price list flyer image from gallery if available
+  const priceListImage = vendor.gallery?.find((img) => img.includes("pricelist") || img.includes("flyer"));
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
       
@@ -222,18 +282,18 @@ export default function VendorDetailPage() {
         </button>
       </div>
 
-      {/* 1. SHOP HEADER & HERO */}
-      <div className="bg-white rounded-3xl border border-[#ede8e1] overflow-hidden shadow-sm">
+      {/* 1. SHOP HERO & PREMISES BANNER */}
+      <div className="bg-white rounded-3xl border border-[#ede8e1] overflow-hidden shadow-xs">
         <div className="relative h-64 sm:h-80 w-full bg-[#f4efe8]">
           <img
             src={vendor.profileImage}
             alt={vendor.shopName}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
 
           <div className="absolute bottom-6 left-6 right-6 text-white flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="space-y-2">
+            <div className="space-y-2 max-w-xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold">
                   {vendor.area}
@@ -242,6 +302,12 @@ export default function VendorDetailPage() {
                   <span className="px-3 py-1 rounded-full bg-emerald-600/90 backdrop-blur-md text-xs font-semibold flex items-center space-x-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Verified UCC Vendor</span>
+                  </span>
+                )}
+                {distanceText && (
+                  <span className="px-3 py-1 rounded-full bg-blue-600/90 backdrop-blur-md text-xs font-semibold flex items-center space-x-1">
+                    <Navigation className="w-3 h-3" />
+                    <span>{distanceText}</span>
                   </span>
                 )}
               </div>
@@ -263,8 +329,21 @@ export default function VendorDetailPage() {
               </div>
             </div>
 
-            {/* Quick Contact Buttons */}
-            <div className="flex items-center space-x-2">
+            {/* Quick Contact & Directions Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              {vendor.latitude && vendor.longitude && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${vendor.latitude},${vendor.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors"
+                  title="Open GPS directions in Google Maps"
+                >
+                  <MapPin className="w-4 h-4 text-[#c59b27]" />
+                  <span>Get Directions</span>
+                </a>
+              )}
+
               {vendor.whatsappNumber && (
                 <a
                   href={`https://wa.me/${vendor.whatsappNumber.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(vendor.shopName)},%20I%20am%20a%20UCC%20student%20inquiring%20about%20a%20grooming%20appointment.`}
@@ -273,16 +352,17 @@ export default function VendorDetailPage() {
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors shadow-sm"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>WhatsApp Shop</span>
+                  <span>WhatsApp</span>
                 </a>
               )}
+
               {vendor.phoneNumber && (
                 <a
                   href={`tel:${vendor.phoneNumber}`}
                   className="px-4 py-2.5 rounded-xl bg-white/20 backdrop-blur-md hover:bg-white/30 text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>Call</span>
+                  <span>Call {vendor.phoneNumber}</span>
                 </a>
               )}
             </div>
@@ -298,38 +378,61 @@ export default function VendorDetailPage() {
             </div>
             <div>
               <div className="text-xs font-bold uppercase tracking-wider text-[#8a8479]">
-                Live Walk-In / Queue Radar
+                Live Walk-In / Chair Radar
               </div>
               <div className="text-sm font-semibold text-[#1c1b18]">
                 {queueCount === 0
-                  ? "No queue right now. Chairs are available!"
+                  ? "No wait right now. Chairs are available!"
                   : `${queueCount} student${queueCount === 1 ? "" : "s"} waiting (~${estWaitMins} min est. wait)`}
               </div>
             </div>
           </div>
 
-          <div className="text-xs text-[#736e65]">
-            <span className="font-semibold text-[#1c1b18]">Book online below</span> to skip physical hall lines and guarantee your time slot.
+          <div className="flex items-center space-x-3">
+            {priceListImage && (
+              <button
+                onClick={() => setLightboxImage(priceListImage)}
+                className="px-3.5 py-2 rounded-xl border border-[#ede8e1] bg-white hover:bg-[#f4efe8] text-xs font-semibold text-[#1c1b18] flex items-center space-x-1.5 transition-colors shadow-xs"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#c59b27]" />
+                <span>View Official Price Flyer</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN CONTENT GRID (SERVICES & REVIEWS) */}
+      {/* 2. MAIN CONTENT GRID (SERVICES CATALOG & PREMISES PHOTOS) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left 2 Cols: Services Catalog */}
         <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h2 className="text-xl font-bold text-[#1c1b18] tracking-tight">
-              Services & Haircuts
-            </h2>
-            <p className="text-xs text-[#736e65] mt-0.5">
-              Select a service below to view open time slots and book.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-[#1c1b18] tracking-tight">
+                Services & Verified Prices
+              </h2>
+              <p className="text-xs text-[#736e65] mt-0.5">
+                Showing {filteredServices.length} verified services. Select any service to view open slots and book.
+              </p>
+            </div>
+
+            {/* Quick search input within catalog */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-[#8a8479] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search services..."
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-white border border-[#ede8e1] rounded-xl text-xs text-[#1c1b18] focus:outline-none focus:ring-1 focus:ring-[#c59b27]"
+              />
+            </div>
           </div>
 
-          <div className="space-y-3.5">
-            {services.map((srv) => (
+          {/* Services List */}
+          <div className="space-y-3">
+            {filteredServices.map((srv) => (
               <div
                 key={srv.serviceId}
                 className="p-5 rounded-2xl bg-white border border-[#ede8e1] shadow-xs hover:border-[#c59b27] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -342,13 +445,18 @@ export default function VendorDetailPage() {
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-[#f4efe8] text-[#4a4742]">
                       {srv.duration} mins
                     </span>
+                    {srv.pricingType === "starting_at" && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                        Varies by style
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs text-[#615c54] leading-relaxed">
                     {srv.description}
                   </p>
 
-                  <div className="text-sm font-extrabold text-[#1c1b18]">
+                  <div className="text-base font-extrabold text-[#1c1b18]">
                     {formatGHS(srv.price)}
                   </div>
                 </div>
@@ -375,7 +483,7 @@ export default function VendorDetailPage() {
 
             {reviews.length === 0 ? (
               <div className="p-6 bg-white rounded-2xl border border-[#ede8e1] text-center text-xs text-[#8a8479]">
-                No reviews yet for this vendor. Completed appointments can leave verified reviews.
+                No reviews yet for this vendor. Completed student appointments can leave verified reviews.
               </div>
             ) : (
               <div className="space-y-3">
@@ -401,28 +509,65 @@ export default function VendorDetailPage() {
           </div>
         </div>
 
-        {/* Right 1 Col: Shop Hours & About */}
+        {/* Right 1 Col: Shop Gallery & Premises Info */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-[#ede8e1] p-6 space-y-4">
-            <h3 className="font-bold text-sm text-[#1c1b18] uppercase tracking-wider">
-              About This Studio
-            </h3>
-            <p className="text-xs text-[#615c54] leading-relaxed">
-              {vendor.description}
-            </p>
+          
+          {/* Premises Gallery Card */}
+          {vendor.gallery && vendor.gallery.length > 0 && (
+            <div className="bg-white rounded-2xl border border-[#ede8e1] p-5 space-y-3">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-[#1c1b18] flex items-center space-x-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-[#c59b27]" />
+                <span>Shop Premises & Flyers</span>
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {vendor.gallery.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setLightboxImage(img)}
+                    className="relative h-28 rounded-xl overflow-hidden border border-[#ede8e1] group focus:outline-none"
+                  >
+                    <img
+                      src={img}
+                      alt="Premises"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <span className="text-[10px] text-white opacity-0 group-hover:opacity-100 font-bold">
+                        Click to Zoom
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-            <div className="pt-3 border-t border-[#ede8e1] space-y-2 text-xs">
+          {/* Operating Hours & Policy */}
+          <div className="bg-white rounded-2xl border border-[#ede8e1] p-6 space-y-4">
+            <h3 className="font-bold text-xs text-[#1c1b18] uppercase tracking-wider">
+              Operating Schedule
+            </h3>
+            <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-[#8a8479]">Operating Hours</span>
-                <span className="font-semibold text-[#1c1b18]">08:00 - 21:00</span>
+                <span className="text-[#8a8479]">Zone</span>
+                <span className="font-semibold text-[#1c1b18]">{vendor.area}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#8a8479]">Working Days</span>
-                <span className="font-semibold text-[#1c1b18]">Monday - Saturday</span>
+                <span className="text-[#8a8479]">Address</span>
+                <span className="font-semibold text-[#1c1b18] text-right truncate max-w-[180px]">
+                  {vendor.businessAddress}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#8a8479]">Sunday</span>
-                <span className="text-rose-600 font-semibold">Closed / By Appt</span>
+                <span className="text-[#8a8479]">Working Hours</span>
+                <span className="font-semibold text-[#1c1b18]">
+                  {vendor.vendorId === "ucc_vend_magdee_beauty" ? "24-Hour Service" : "08:00 - 22:00"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#8a8479]">Payment Accepted</span>
+                <span className="font-semibold text-[#1c1b18]">MoMo & Cash at Shop</span>
               </div>
             </div>
           </div>
@@ -439,7 +584,30 @@ export default function VendorDetailPage() {
 
       </div>
 
-      {/* 3. INTERACTIVE BOOKING MODAL */}
+      {/* 3. LIGHTBOX FLYER MODAL */}
+      {lightboxImage && (
+        <div
+          onClick={() => setLightboxImage(null)}
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+        >
+          <div className="relative max-w-2xl max-h-[90vh] bg-transparent">
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-stone-300 p-2 text-sm font-bold flex items-center space-x-1"
+            >
+              <X className="w-6 h-6" />
+              <span>Close</span>
+            </button>
+            <img
+              src={lightboxImage}
+              alt="Official Vendor Price Flyer"
+              className="max-h-[85vh] w-auto mx-auto rounded-2xl shadow-2xl border border-stone-800"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 4. INTERACTIVE BOOKING MODAL */}
       {selectedService && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl relative border border-[#ede8e1]">
@@ -461,8 +629,24 @@ export default function VendorDetailPage() {
                   Appointment Reserved!
                 </h3>
                 <p className="text-xs text-[#615c54] max-w-xs mx-auto">
-                  Your slot for <span className="font-semibold text-[#1c1b18]">{bookingSuccess.serviceNameSnapshot}</span> on <span className="font-semibold text-[#1c1b18]">{bookingSuccess.appointmentDate}</span> at <span className="font-semibold text-[#1c1b18]">{bookingSuccess.startTime}</span> has been confirmed.
+                  Your slot for <span className="font-semibold text-[#1c1b18]">{bookingSuccess.serviceNameSnapshot}</span> on <span className="font-semibold text-[#1c1b18]">{bookingSuccess.appointmentDate}</span> at <span className="font-semibold text-[#1c1b18]">{bookingSuccess.startTime}</span> has been locked in Firestore.
                 </p>
+
+                {/* Direct WhatsApp notify link for student */}
+                {vendor.whatsappNumber && (
+                  <div className="pt-2">
+                    <a
+                      href={`https://wa.me/${vendor.whatsappNumber.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(vendor.shopName)},%20I%20just%20booked%20${encodeURIComponent(bookingSuccess.serviceNameSnapshot)}%20for%20${bookingSuccess.appointmentDate}%20at%20${bookingSuccess.startTime}.%20Booking%20ID:%20${bookingSuccess.appointmentId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Notify Shop on WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+
                 <div className="pt-2 flex flex-col space-y-2">
                   <button
                     onClick={() => router.push("/customer/dashboard")}
@@ -529,7 +713,7 @@ export default function VendorDetailPage() {
                       <Clock className="w-3.5 h-3.5 text-[#c59b27]" />
                       <span>Available Time Slots</span>
                     </span>
-                    {loadingSlots && <span className="text-[10px] text-[#8a8479]">Checking availability...</span>}
+                    {loadingSlots && <span className="text-[10px] text-[#8a8479]">Checking Firestore slots...</span>}
                   </label>
 
                   {loadingSlots ? (
@@ -588,7 +772,7 @@ export default function VendorDetailPage() {
 
                 {/* Special notes */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[#4a4742]">Notes / Specific Hairstyle Request</label>
+                  <label className="text-xs font-semibold text-[#4a4742]">Special Hairstyle / Cut Request</label>
                   <input
                     type="text"
                     placeholder="e.g. Skin taper on the sides, natural wave on top"

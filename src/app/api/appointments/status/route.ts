@@ -5,7 +5,8 @@ import { BookingStatus } from "@/types";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { appointmentId, newStatus, reason, updatedBy } = body;
+    const { appointmentId, reason, updatedBy } = body;
+    const newStatus = body.newStatus || body.status;
 
     if (!appointmentId || !newStatus) {
       return NextResponse.json(
@@ -77,3 +78,5 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export const PATCH = POST;

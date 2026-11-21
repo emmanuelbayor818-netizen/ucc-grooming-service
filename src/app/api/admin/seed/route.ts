@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
-import { realVendors, realServices } from "@/../scripts/seed-real-ucc-vendors.mjs";
+import { REAL_UCC_VENDORS, REAL_UCC_SERVICES } from "@/lib/constants/realVendors";
 
 export async function POST() {
   try {
@@ -26,7 +26,8 @@ export async function POST() {
 
     // 2. Batch write 7 authentic UCC vendors
     const batch1 = adminDb.batch();
-    for (const v of realVendors) {
+    for (const v of REAL_UCC_VENDORS) {
+      if (!v.vendorId) continue;
       batch1.set(adminDb.collection("vendors").doc(v.vendorId), {
         ...v,
         createdAt: now,
@@ -35,7 +36,7 @@ export async function POST() {
 
       batch1.set(adminDb.collection("queueUpdates").doc(v.vendorId), {
         vendorId: v.vendorId,
-        customerCount: v.currentQueueCount,
+        customerCount: v.currentQueueCount ?? 0,
         estimatedWaitMinutesPerPerson: 25,
         updatedAt: now,
       });
@@ -79,7 +80,8 @@ export async function POST() {
 
     // 3. Batch write 55 services
     const batch2 = adminDb.batch();
-    for (const s of realServices) {
+    for (const s of REAL_UCC_SERVICES) {
+      if (!s.serviceId) continue;
       batch2.set(adminDb.collection("services").doc(s.serviceId), {
         ...s,
         createdAt: now,
@@ -90,9 +92,9 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully seeded ${realVendors.length} real UCC Vendors and ${realServices.length} authentic services into Cloud Firestore.`,
-      vendorsCount: realVendors.length,
-      servicesCount: realServices.length,
+      message: `Successfully seeded ${REAL_UCC_VENDORS.length} real UCC Vendors and ${REAL_UCC_SERVICES.length} authentic services into Cloud Firestore.`,
+      vendorsCount: REAL_UCC_VENDORS.length,
+      servicesCount: REAL_UCC_SERVICES.length,
     });
   } catch (error: any) {
     console.error("Seeding error:", error);

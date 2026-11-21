@@ -13,13 +13,18 @@ export async function GET(request: Request) {
     const appointmentsSnap = await adminDb
       .collection("appointments")
       .where("customerId", "==", customerId)
-      .orderBy("appointmentDate", "desc")
       .get();
 
-    const appointments = appointmentsSnap.docs.map((doc: any) => ({
-      appointmentId: doc.id,
-      ...doc.data(),
-    }));
+    const appointments = appointmentsSnap.docs
+      .map((doc: any) => ({
+        appointmentId: doc.id,
+        ...doc.data(),
+      }))
+      .sort((a: any, b: any) => {
+        const dateCompare = (b.appointmentDate || "").localeCompare(a.appointmentDate || "");
+        if (dateCompare !== 0) return dateCompare;
+        return (b.startTime || "").localeCompare(a.startTime || "");
+      });
 
     return NextResponse.json({ success: true, appointments });
   } catch (error: any) {
