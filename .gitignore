@@ -39,8 +39,8 @@ serviceAccountKey*.json
 .firebase/
 firebase-debug.log*
 
-# vercel
-.vercel
+# Cloudflare tunnel binary
+cloudflared.exe
 
 # typescript
 *.tsbuildinfo
