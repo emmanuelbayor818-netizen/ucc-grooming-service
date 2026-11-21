@@ -28,6 +28,7 @@ import {
 import { Vendor, ServiceItem, Review } from "@/types";
 import { formatGHS } from "@/lib/utils/time";
 import { calculateDistanceKm, UCC_COORDINATES } from "@/lib/constants/ucc";
+import { REAL_UCC_VENDORS, REAL_UCC_SERVICES } from "@/lib/constants/realVendors";
 
 export default function VendorDetailPage() {
   const params = useParams();
@@ -35,10 +36,13 @@ export default function VendorDetailPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
 
-  const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [services, setServices] = useState<ServiceItem[]>([]);
+  const fallbackVendor = REAL_UCC_VENDORS.find((v) => v.vendorId === vendorId) as Vendor | undefined;
+  const fallbackServices = REAL_UCC_SERVICES.filter((s) => s.vendorId === vendorId) as ServiceItem[];
+
+  const [vendor, setVendor] = useState<Vendor | null>(fallbackVendor || null);
+  const [services, setServices] = useState<ServiceItem[]>(fallbackServices);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Filter & Search inside Vendor Catalog
   const [serviceSearch, setServiceSearch] = useState("");

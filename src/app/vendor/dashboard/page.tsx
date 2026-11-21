@@ -19,19 +19,22 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Appointment, ServiceItem, Vendor } from "@/types";
+import { REAL_UCC_VENDORS, REAL_UCC_SERVICES } from "@/lib/constants/realVendors";
 import { formatGHS } from "@/lib/utils/time";
 
 export default function VendorDashboardPage() {
   const { user, profile, role, loading } = useAuth();
   const router = useRouter();
 
-  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [vendor, setVendor] = useState<Vendor | null>(REAL_UCC_VENDORS[0] as Vendor);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [queueCount, setQueueCount] = useState<number>(0);
+  const [services, setServices] = useState<ServiceItem[]>(
+    REAL_UCC_SERVICES.filter((s) => s.vendorId === REAL_UCC_VENDORS[0].vendorId) as ServiceItem[]
+  );
+  const [queueCount, setQueueCount] = useState<number>(REAL_UCC_VENDORS[0].currentQueueCount || 2);
   const [updatingQueue, setUpdatingQueue] = useState(false);
   const [activeTab, setActiveTab] = useState<"bookings" | "services" | "hours">("bookings");
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
 
   // New Service Modal
   const [newServiceModalOpen, setNewServiceModalOpen] = useState(false);
@@ -40,13 +43,6 @@ export default function VendorDashboardPage() {
   const [newServicePrice, setNewServicePrice] = useState("");
   const [newServiceDuration, setNewServiceDuration] = useState("30");
   const [serviceSubmitting, setServiceSubmitting] = useState(false);
-
-  // Check role: Must be vendor or admin
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth/login?redirect=/vendor/dashboard");
-    }
-  }, [user, loading, router]);
 
   const loadVendorData = async () => {
     if (!user) return;
@@ -57,9 +53,11 @@ export default function VendorDashboardPage() {
       const vRes = await fetch(`/api/vendors/${vendorId}`);
       if (vRes.ok) {
         const vData = await vRes.json();
-        setVendor(vData.vendor);
-        setServices(vData.services || []);
-        setQueueCount(vData.vendor?.currentQueueCount || 0);
+        if (vData.vendor) {
+          setVendor(vData.vendor);
+          setServices(vData.services || []);
+          setQueueCount(vData.vendor?.currentQueueCount || 0);
+        }
       }
 
       // Fetch bookings for this vendor
@@ -158,11 +156,47 @@ export default function VendorDashboardPage() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center">
         <div className="w-8 h-8 border-2 border-[#c59b27] border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="text-sm text-[#8a8479] mt-3">Verifying vendor credentials...</p>
+        <p className="text-sm text-[#8a8479] mt-3">Loading vendor studio hub...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white border border-[#ede8e1] rounded-3xl text-center space-y-5 shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-[#fdfbf7] border border-[#ede8e1] text-[#c59b27] flex items-center justify-center mx-auto">
+          <Store className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-[#1c1b18]">Vendor Studio Access</h2>
+          <p className="text-xs text-[#736e65]">
+            Please sign in with your vendor account to manage your live walk-in queue, confirm customer bookings, and update services.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col gap-2.5">
+          <button
+            onClick={() => router.push("/auth/login?redirect=/vendor/dashboard")}
+            className="w-full py-3 px-4 rounded-xl bg-[#1c1b18] text-white text-xs font-bold hover:bg-[#2d2b27] transition-all shadow-xs"
+          >
+            Sign In to Vendor Hub
+          </button>
+          <button
+            onClick={() => router.push("/auth/register")}
+            className="w-full py-3 px-4 rounded-xl border border-[#ede8e1] text-[#4a4742] text-xs font-semibold hover:bg-[#f4efe8] transition-all"
+          >
+            Register as a Campus Vendor
+          </button>
+          <button
+            onClick={() => router.push("/")}
+            className="text-xs text-[#8a8479] hover:text-[#1c1b18] hover:underline pt-1 transition-colors"
+          >
+            ← Back to Campus Directory
+          </button>
+        </div>
       </div>
     );
   }

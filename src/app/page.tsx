@@ -21,12 +21,13 @@ import {
 } from "lucide-react";
 import { Vendor, VendorCategory, CampusArea } from "@/types";
 import { VENDOR_CATEGORIES, UCC_CAMPUS_AREAS, calculateDistanceKm, UCC_COORDINATES } from "@/lib/constants/ucc";
+import { REAL_UCC_VENDORS } from "@/lib/constants/realVendors";
 import { formatGHS } from "@/lib/utils/time";
 import { CampusMap } from "@/components/map/CampusMap";
 
 export default function HomePage() {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [vendors, setVendors] = useState<Vendor[]>(REAL_UCC_VENDORS as Vendor[]);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedArea, setSelectedArea] = useState<string>("All");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");

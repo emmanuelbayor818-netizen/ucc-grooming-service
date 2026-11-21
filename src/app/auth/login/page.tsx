@@ -102,14 +102,61 @@ function LoginForm() {
         </button>
       </form>
 
-      <div className="pt-4 border-t border-[#ede8e1] text-center text-xs text-[#736e65]">
-        Don&apos;t have an account yet?{" "}
+      {/* Quick Demo Fill Buttons */}
+      <div className="space-y-2 pt-2">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#8a8479] text-center">
+          Quick Demo Credentials
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("student@ucc.edu.gh");
+              setPassword("StudentPass123!");
+            }}
+            className="py-1.5 px-2 rounded-lg bg-[#f4efe8] hover:bg-[#ebe4d8] text-[#1c1b18] text-[11px] font-semibold transition-colors"
+          >
+            🎓 Student
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("bbf@ucc.edu.gh");
+              setPassword("VendorPass123!");
+            }}
+            className="py-1.5 px-2 rounded-lg bg-[#f4efe8] hover:bg-[#ebe4d8] text-[#1c1b18] text-[11px] font-semibold transition-colors"
+          >
+            ✂️ Vendor
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("admin@ucc.edu.gh");
+              setPassword("AdminPass123!");
+            }}
+            className="py-1.5 px-2 rounded-lg bg-[#f4efe8] hover:bg-[#ebe4d8] text-[#1c1b18] text-[11px] font-semibold transition-colors"
+          >
+            🛡️ Admin
+          </button>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t border-[#ede8e1] flex items-center justify-between text-xs text-[#736e65]">
         <Link
-          href="/auth/register"
-          className="font-bold text-[#1c1b18] hover:text-[#c59b27] transition-colors"
+          href="/"
+          className="hover:text-[#1c1b18] transition-colors"
         >
-          Register Here
+          ← Back to Directory
         </Link>
+        <div>
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/auth/register"
+            className="font-bold text-[#1c1b18] hover:text-[#c59b27] transition-colors"
+          >
+            Register
+          </Link>
+        </div>
       </div>
     </div>
   );

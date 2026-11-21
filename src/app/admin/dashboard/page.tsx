@@ -17,7 +17,7 @@ import {
 import { Vendor, AdminLog } from "@/types";
 
 export default function AdminDashboardPage() {
-  const { user, profile, role, loading } = useAuth();
+  const { user, profile, role, isAdmin, loading } = useAuth();
   const router = useRouter();
 
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -26,15 +26,6 @@ export default function AdminDashboardPage() {
   const [seedMessage, setSeedMessage] = useState("");
   const [activeTab, setActiveTab] = useState<"vendors" | "logs">("vendors");
   const [loadingData, setLoadingData] = useState(true);
-
-  // Check role: must be admin
-  useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/auth/login?redirect=/admin/dashboard");
-      }
-    }
-  }, [user, loading, router]);
 
   const loadAdminData = async () => {
     try {
@@ -99,6 +90,36 @@ export default function AdminDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 py-24 text-center">
         <div className="w-8 h-8 border-2 border-[#c59b27] border-t-transparent rounded-full animate-spin mx-auto"></div>
         <p className="text-sm text-[#8a8479] mt-3">Validating Admin Credentials...</p>
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white border border-[#ede8e1] rounded-3xl text-center space-y-5 shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-[#fdfbf7] border border-[#ede8e1] text-[#c59b27] flex items-center justify-center mx-auto">
+          <Shield className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-[#1c1b18]">Administrator Access Required</h2>
+          <p className="text-xs text-[#736e65]">
+            This portal is restricted to authorized UCC Grooming Service administrators.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col gap-2.5">
+          <button
+            onClick={() => router.push("/auth/login?redirect=/admin/dashboard")}
+            className="w-full py-3 px-4 rounded-xl bg-[#1c1b18] text-white text-xs font-bold hover:bg-[#2d2b27] transition-all shadow-xs"
+          >
+            Sign In with Admin Account
+          </button>
+          <button
+            onClick={() => router.push("/")}
+            className="text-xs text-[#8a8479] hover:text-[#1c1b18] hover:underline pt-1 transition-colors"
+          >
+            ← Back to Campus Directory
+          </button>
+        </div>
       </div>
     );
   }

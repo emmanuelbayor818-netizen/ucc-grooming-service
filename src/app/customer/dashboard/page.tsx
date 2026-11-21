@@ -34,13 +34,6 @@ export default function CustomerDashboardPage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMsg, setReviewMsg] = useState("");
 
-  // Check role protection: must be logged in as customer or admin
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth/login?redirect=/customer/dashboard");
-    }
-  }, [user, loading, router]);
-
   const loadAppointments = async () => {
     if (!user) return;
     try {
@@ -127,11 +120,47 @@ export default function CustomerDashboardPage() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center">
         <div className="w-8 h-8 border-2 border-[#c59b27] border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="text-sm text-[#8a8479] mt-3">Verifying student account...</p>
+        <p className="text-sm text-[#8a8479] mt-3">Loading student portal...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 bg-white border border-[#ede8e1] rounded-3xl text-center space-y-5 shadow-xs">
+        <div className="w-14 h-14 rounded-2xl bg-[#fdfbf7] border border-[#ede8e1] text-[#c59b27] flex items-center justify-center mx-auto">
+          <Scissors className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-[#1c1b18]">Student Account Required</h2>
+          <p className="text-xs text-[#736e65]">
+            Please sign in to track your campus grooming appointments, receipts, and write verified reviews.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col gap-2.5">
+          <button
+            onClick={() => router.push("/auth/login?redirect=/customer/dashboard")}
+            className="w-full py-3 px-4 rounded-xl bg-[#1c1b18] text-white text-xs font-bold hover:bg-[#2d2b27] transition-all shadow-xs"
+          >
+            Sign In with Email
+          </button>
+          <button
+            onClick={() => router.push("/auth/register")}
+            className="w-full py-3 px-4 rounded-xl border border-[#ede8e1] text-[#4a4742] text-xs font-semibold hover:bg-[#f4efe8] transition-all"
+          >
+            Create New Account
+          </button>
+          <button
+            onClick={() => router.push("/")}
+            className="text-xs text-[#8a8479] hover:text-[#1c1b18] hover:underline pt-1 transition-colors"
+          >
+            ← Back to Campus Directory
+          </button>
+        </div>
       </div>
     );
   }

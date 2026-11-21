@@ -52,7 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let unsubscribeProfile: (() => void) | null = null;
 
+    // Safety timeout: Never leave loading true for more than 1.5s
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      clearTimeout(safetyTimer);
       setUser(currentUser);
 
       if (currentUser) {
@@ -80,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };
