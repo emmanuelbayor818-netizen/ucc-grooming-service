@@ -1,4 +1,4 @@
-# Firebase App Hosting Configuration for UCC Grooming Service (Next.js)
+# Firebase App Hosting Configuration for UCC Grooming Services (Next.js)
 # Docs: https://firebase.google.com/docs/app-hosting
 
 runConfig:
@@ -10,11 +10,19 @@ runConfig:
 
 env:
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: ucc-grooming-service
+    value: ucc-grooming-services-646d5
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: ucc-grooming-service.firebaseapp.com
+    value: ucc-grooming-services-646d5.firebaseapp.com
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: ucc-grooming-service.appspot.com
+    value: ucc-grooming-services-646d5.firebasestorage.app
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyAaQD-WglKRExen4Xml3GH9l9707uD2cJU
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:833276597317:web:c9e9787d6109ac8e1bbf2c"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "833276597317"
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-85CHEZK167
   - variable: NEXT_PUBLIC_USE_FIREBASE_EMULATORS
     value: "false"
   # Production secrets managed in Google Cloud Secret Manager
@@ -24,3 +32,4 @@ env:
     secret: paystack-webhook-secret
   - variable: FIREBASE_ADMIN_PRIVATE_KEY
     secret: firebase-admin-private-key
+
