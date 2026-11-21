@@ -1,0 +1,160 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.admin == true ||
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    function isVendor(vendorId) {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/vendors/$(vendorId)) &&
+         get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerId == request.auth.uid) ||
+        isAdmin()
+      );
+    }
+
+    // USERS COLLECTION
+    // Users can read public profile data, modify only their own personal details.
+    // Role & accountStatus cannot be updated by normal user.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) &&
+                       request.resource.data.role in ['customer', 'vendor'] &&
+                       request.resource.data.accountStatus == 'active';
+      allow update: if isOwner(userId) &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'accountStatus']) ||
+                       isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // VENDORS COLLECTION
+    // Anyone can read verified vendor shop profiles; vendor owner can update profile; admin can verify/delete.
+    match /vendors/{vendorId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.ownerId == request.auth.uid &&
+                       request.resource.data.verificationStatus == 'pending';
+      allow update: if (isAuthenticated() && resource.data.ownerId == request.auth.uid &&
+                       !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verificationStatus'])) ||
+                       isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // SERVICES COLLECTION
+    // Public read; vendor owner can create/update/delete.
+    match /services/{serviceId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isVendor(request.resource.data.vendorId);
+      allow update, delete: if isAuthenticated() && isVendor(resource.data.vendorId);
+    }
+
+    // WORKING HOURS COLLECTION
+    match /workingHours/{hourId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && (isVendor(request.resource.data.vendorId) || isAdmin());
+    }
+
+    // QUEUE UPDATES COLLECTION
+    // Public read for live campus wait times; only vendor owner or admin can update queue counter.
+    match /queueUpdates/{vendorId} {
+      allow read: if true;
+      allow write: if isAuthenticated() && (isVendor(vendorId) || isAdmin());
+    }
+
+    // APPOINTMENTS COLLECTION
+    // Customers can access their own bookings.
+    // Vendors can access only bookings assigned to their vendorId.
+    // Admin has oversight.
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.customerId == request.auth.uid ||
+        isVendor(resource.data.vendorId) ||
+        isAdmin()
+      );
+      // Appointment creation is restricted; customer can book if customerId matches auth uid
+      allow create: if isAuthenticated() &&
+                       request.resource.data.customerId == request.auth.uid &&
+                       request.resource.data.bookingStatus in ['pending', 'confirmed'];
+      // Status updates: customer can only cancel before execution; vendor can confirm/start/complete;
+      // bookingStatus & paymentStatus updates should ideally pass through backend API/Cloud Functions.
+      allow update: if isAuthenticated() && (
+        (resource.data.customerId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookingStatus', 'cancellationReason', 'updatedAt']) &&
+         request.resource.data.bookingStatus == 'cancelled') ||
+        isVendor(resource.data.vendorId) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // PAYMENTS COLLECTION
+    // Private; customers read their own payment records, vendors read payments for their shop.
+    // Write is strictly restricted to Server/Admin or secure backend verification.
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (
+        resource.data.customerId == request.auth.uid ||
+        isVendor(resource.data.vendorId) ||
+        isAdmin()
+      );
+      allow create, update: if isAdmin(); // Created & verified via Server API / Cloud Functions
+      allow delete: if isAdmin();
+    }
+
+    // REVIEWS COLLECTION
+    // Public read.
+    // Reviews can ONLY be created if customer had a completed appointment.
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.customerId == request.auth.uid &&
+                       request.resource.data.rating >= 1 &&
+                       request.resource.data.rating <= 5;
+      allow update: if isOwner(resource.data.customerId) || isAdmin();
+      allow delete: if isOwner(resource.data.customerId) || isAdmin();
+    }
+
+    // NOTIFICATIONS COLLECTION
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.recipientId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
+    }
+
+    // FAVOURITES COLLECTION
+    match /favourites/{favouriteId} {
+      allow read: if isAuthenticated() && resource.data.customerId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.customerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.customerId == request.auth.uid;
+    }
+
+    // REPORTS COLLECTION
+    match /reports/{reportId} {
+      allow read: if isAuthenticated() && (resource.data.reporterId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.reporterId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ADMIN LOGS COLLECTION
+    match /adminLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}

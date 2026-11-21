@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdfbf7;
+  --foreground: #1c1b18;
+  --card-bg: #ffffff;
+  --card-border: #ede8e1;
+  --accent-gold: #c59b27;
+  --accent-gold-hover: #b0891d;
+  --stone-100: #f7f4ee;
+  --stone-200: #ede8df;
+  --stone-800: #292825;
+  --stone-900: #171614;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f4efe8;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4cdc2;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #baaF9f;
+}
+
+/* Glass & Card effects */
+.neutral-glass {
+  background: rgba(253, 251, 247, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #a67c1e 0%, #c59b27 50%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
