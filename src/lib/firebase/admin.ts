@@ -1,7 +1,7 @@
-import { initializeApp, getApps, cert, App } from "firebase-admin/app";
-import { getFirestore, Firestore } from "firebase-admin/firestore";
-import { getAuth, Auth } from "firebase-admin/auth";
-import { getStorage, Storage } from "firebase-admin/storage";
+import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import type { Auth } from "firebase-admin/auth";
+import type { Storage } from "firebase-admin/storage";
 import fs from "fs";
 import path from "path";
 
@@ -75,15 +75,17 @@ export function getAdminDb(): Firestore {
   return _adminDb;
 }
 
-export function getAdminAuth(): Auth {
+export async function getAdminAuth(): Promise<Auth> {
   if (!_adminAuth) {
+    const { getAuth } = await import("firebase-admin/auth");
     _adminAuth = getAuth(getAdminApp());
   }
   return _adminAuth;
 }
 
-export function getAdminStorage(): Storage {
+export async function getAdminStorage(): Promise<Storage> {
   if (!_adminStorage) {
+    const { getStorage } = await import("firebase-admin/storage");
     _adminStorage = getStorage(getAdminApp());
   }
   return _adminStorage;
@@ -107,21 +109,27 @@ export const adminDb: Firestore = new Proxy({} as Firestore, {
   },
 });
 
-export const adminAuth: Auth = new Proxy({} as Auth, {
-  get(_target, prop) {
-    const inst = getAdminAuth();
-    const val = (inst as any)[prop];
-    return typeof val === "function" ? val.bind(inst) : val;
+export const adminAuth = {
+  setCustomUserClaims: async (uid: string, claims: Record<string, any>) => {
+    const auth = await getAdminAuth();
+    return auth.setCustomUserClaims(uid, claims);
   },
-});
+  getUser: async (uid: string) => {
+    const auth = await getAdminAuth();
+    return auth.getUser(uid);
+  },
+  verifyIdToken: async (token: string, checkRevoked?: boolean) => {
+    const auth = await getAdminAuth();
+    return auth.verifyIdToken(token, checkRevoked);
+  },
+};
 
-export const adminStorage: Storage = new Proxy({} as Storage, {
-  get(_target, prop) {
-    const inst = getAdminStorage();
-    const val = (inst as any)[prop];
-    return typeof val === "function" ? val.bind(inst) : val;
+export const adminStorage = {
+  bucket: async (name?: string) => {
+    const storage = await getAdminStorage();
+    return storage.bucket(name);
   },
-});
+};
 
 /**
  * Assign Custom Claims for Role-Based Access Control
