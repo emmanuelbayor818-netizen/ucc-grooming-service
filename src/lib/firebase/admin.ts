@@ -35,18 +35,30 @@ function getFirebaseAdminApp(): App {
   let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
 
   if (privateKey) {
+    privateKey = privateKey.trim();
+    // Strip wrapping quotes if user pasted with quotes
+    if (
+      (privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+      (privateKey.startsWith("'") && privateKey.endsWith("'"))
+    ) {
+      privateKey = privateKey.slice(1, -1);
+    }
     privateKey = privateKey.replace(/\\n/g, "\n");
   }
 
   if (clientEmail && privateKey) {
-    return initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`,
-    });
+    try {
+      return initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || `${projectId}.firebasestorage.app`,
+      });
+    } catch (certError) {
+      console.error("Firebase Admin cert error:", certError);
+    }
   }
 
   // 3. Fallback for Google Cloud default application credentials
