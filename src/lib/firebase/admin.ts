@@ -56,10 +56,72 @@ function getFirebaseAdminApp(): App {
   });
 }
 
-export const adminApp: App = getFirebaseAdminApp();
-export const adminDb: Firestore = getFirestore(adminApp);
-export const adminAuth: Auth = getAuth(adminApp);
-export const adminStorage: Storage = getStorage(adminApp);
+let _adminApp: App | null = null;
+let _adminDb: Firestore | null = null;
+let _adminAuth: Auth | null = null;
+let _adminStorage: Storage | null = null;
+
+export function getAdminApp(): App {
+  if (!_adminApp) {
+    _adminApp = getFirebaseAdminApp();
+  }
+  return _adminApp;
+}
+
+export function getAdminDb(): Firestore {
+  if (!_adminDb) {
+    _adminDb = getFirestore(getAdminApp());
+  }
+  return _adminDb;
+}
+
+export function getAdminAuth(): Auth {
+  if (!_adminAuth) {
+    _adminAuth = getAuth(getAdminApp());
+  }
+  return _adminAuth;
+}
+
+export function getAdminStorage(): Storage {
+  if (!_adminStorage) {
+    _adminStorage = getStorage(getAdminApp());
+  }
+  return _adminStorage;
+}
+
+// Lazy proxies: zero initialization at build/import time.
+// Only initializes upon first actual method invocation at runtime.
+export const adminApp: App = new Proxy({} as App, {
+  get(_target, prop) {
+    const inst = getAdminApp();
+    const val = (inst as any)[prop];
+    return typeof val === "function" ? val.bind(inst) : val;
+  },
+});
+
+export const adminDb: Firestore = new Proxy({} as Firestore, {
+  get(_target, prop) {
+    const inst = getAdminDb();
+    const val = (inst as any)[prop];
+    return typeof val === "function" ? val.bind(inst) : val;
+  },
+});
+
+export const adminAuth: Auth = new Proxy({} as Auth, {
+  get(_target, prop) {
+    const inst = getAdminAuth();
+    const val = (inst as any)[prop];
+    return typeof val === "function" ? val.bind(inst) : val;
+  },
+});
+
+export const adminStorage: Storage = new Proxy({} as Storage, {
+  get(_target, prop) {
+    const inst = getAdminStorage();
+    const val = (inst as any)[prop];
+    return typeof val === "function" ? val.bind(inst) : val;
+  },
+});
 
 /**
  * Assign Custom Claims for Role-Based Access Control
