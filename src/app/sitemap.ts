@@ -1,7 +1,10 @@
 import { MetadataRoute } from "next";
 import { REAL_UCC_VENDORS } from "@/lib/constants/realVendors";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = "force-dynamic";
+export const revalidate = 3600; // revalidate hourly
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://ucc-grooming-service-production.up.railway.app";
@@ -27,8 +30,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const vendorRoutes: MetadataRoute.Sitemap = REAL_UCC_VENDORS.map((vendor) => ({
-    url: `${baseUrl}/vendor/${vendor.vendorId}`,
+  // Start with default UCC campus vendor seed IDs
+  let vendorIds: string[] = REAL_UCC_VENDORS.map((v) => v.vendorId!).filter(Boolean);
+
+  // Dynamically include any newly registered vendor from Cloud Firestore
+  try {
+    const { adminDb } = await import("@/lib/firebase/admin");
+    const snapshot = await adminDb.collection("vendors").get();
+    if (!snapshot.empty) {
+      const dbIds = snapshot.docs.map((doc) => doc.id);
+      vendorIds = Array.from(new Set([...vendorIds, ...dbIds]));
+    }
+  } catch (err) {
+    console.warn("Sitemap: using static fallback vendor list:", err);
+  }
+
+  const vendorRoutes: MetadataRoute.Sitemap = vendorIds.map((id) => ({
+    url: `${baseUrl}/vendor/${id}`,
     lastModified: new Date(),
     changeFrequency: "daily",
     priority: 0.9,
