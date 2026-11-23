@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Vendor, ServiceItem, Review } from "@/types";
 import { formatGHS } from "@/lib/utils/time";
+import { getWhatsAppUrl } from "@/lib/utils/phone";
 import { calculateDistanceKm, UCC_COORDINATES } from "@/lib/constants/ucc";
 import { REAL_UCC_VENDORS, REAL_UCC_SERVICES } from "@/lib/constants/realVendors";
 
@@ -350,7 +351,10 @@ export default function VendorDetailPage() {
 
               {vendor.whatsappNumber && (
                 <a
-                  href={`https://wa.me/${vendor.whatsappNumber.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(vendor.shopName)},%20I%20am%20a%20UCC%20student%20inquiring%20about%20a%20grooming%20appointment.`}
+                  href={getWhatsAppUrl(
+                    vendor.whatsappNumber,
+                    `Hi ${vendor.shopName}, I am a UCC student inquiring about a grooming appointment.`
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center space-x-1.5 transition-colors shadow-sm"
@@ -640,7 +644,10 @@ export default function VendorDetailPage() {
                 {vendor.whatsappNumber && (
                   <div className="pt-2">
                     <a
-                      href={`https://wa.me/${vendor.whatsappNumber.replace(/[^0-9]/g, "")}?text=Hi%20${encodeURIComponent(vendor.shopName)},%20I%20just%20booked%20${encodeURIComponent(bookingSuccess.serviceNameSnapshot)}%20for%20${bookingSuccess.appointmentDate}%20at%20${bookingSuccess.startTime}.%20Booking%20ID:%20${bookingSuccess.appointmentId}`}
+                      href={getWhatsAppUrl(
+                        vendor.whatsappNumber,
+                        `Hi ${vendor.shopName}, I just booked ${bookingSuccess.serviceNameSnapshot} for ${bookingSuccess.appointmentDate} at ${bookingSuccess.startTime}. Booking ID: ${bookingSuccess.appointmentId}`
+                      )}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 transition-colors"

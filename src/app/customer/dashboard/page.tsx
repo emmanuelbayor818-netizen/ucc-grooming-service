@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import {
   Calendar,
@@ -256,9 +257,12 @@ export default function CustomerDashboardPage() {
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#c59b27]">
+                    <Link
+                      href={`/vendor/${appt.vendorId}`}
+                      className="text-xs font-bold text-[#c59b27] hover:underline"
+                    >
                       {appt.vendorName || "Campus Studio"}
-                    </span>
+                    </Link>
                     <span
                       className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
                         appt.bookingStatus === "confirmed"

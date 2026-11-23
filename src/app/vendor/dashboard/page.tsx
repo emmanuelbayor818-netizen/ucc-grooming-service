@@ -21,6 +21,7 @@ import {
 import { Appointment, ServiceItem, Vendor } from "@/types";
 import { REAL_UCC_VENDORS, REAL_UCC_SERVICES } from "@/lib/constants/realVendors";
 import { formatGHS } from "@/lib/utils/time";
+import { getWhatsAppUrl } from "@/lib/utils/phone";
 
 export default function VendorDashboardPage() {
   const { user, profile, role, loading } = useAuth();
@@ -337,9 +338,23 @@ export default function VendorDashboardPage() {
                       <h3 className="font-bold text-base text-[#1c1b18]">
                         {appt.customerName || "UCC Student"}
                       </h3>
-                      <span className="text-xs text-[#8a8479]">
-                        ({appt.customerPhone || "No Phone"})
-                      </span>
+                      {appt.customerPhone ? (
+                        <a
+                          href={getWhatsAppUrl(
+                            appt.customerPhone,
+                            `Hi ${appt.customerName || "there"}, regarding your UCC Grooming appointment on ${appt.appointmentDate} at ${appt.startTime}...`
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-emerald-700 hover:text-emerald-800 font-medium inline-flex items-center space-x-1 hover:underline"
+                          title="Message student on WhatsApp"
+                        >
+                          <span>{appt.customerPhone}</span>
+                          <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">WhatsApp</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-[#8a8479]">(No Phone)</span>
+                      )}
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                           appt.bookingStatus === "confirmed"
